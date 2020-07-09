@@ -272,7 +272,7 @@ const generateMutationRootType = (models, inputTypes, outputTypes) => {
                                 // `boolean` equals the number of rows affected (0 or 1)
                                 return resolver(models[inputTypeName])(
                                     source,
-                                    where,
+                                    options.where,
                                     context,
                                     info
                                 )
