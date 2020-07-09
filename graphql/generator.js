@@ -1,6 +1,7 @@
 const fs = require('fs')
 const { GraphQLObjectType, GraphQLInputObjectType, GraphQLList, GraphQLInt, GraphQLString, GraphQLNonNull } = require('graphql')
 const { resolver, attributeFields, defaultListArgs, defaultArgs } = require('graphql-sequelize')
+const { EXPECTED_OPTIONS_KEY } = require('dataloader-sequelize')
 
 const _ = require('lodash')
 const helper = require('./helper')
@@ -8,7 +9,12 @@ const helper = require('./helper')
 // Dir for customs graphs
 const customQueryPath = './custom'
 // Cache fix
-let cache = {} 
+let cache = {}
+
+// Dataloader ⭐️
+resolver.contextToOptions = {
+    dataloaderContext: [EXPECTED_OPTIONS_KEY]
+}
 
 /**
  * Returns the association fields of an entity.
@@ -171,6 +177,10 @@ const generateQueryRootType = (models, outputTypes) => {
                     options['limit'] = args['pageSize'] ? parseInt(args['pageSize']) : 10
                     options['offset'] = args['page'] ? (args['page'] - 1) * options['limit'] : 0
 
+                    if (!options[EXPECTED_OPTIONS_KEY]) {
+                        options[EXPECTED_OPTIONS_KEY] = context['dataloaderContext'] || context
+                    }
+
                     return models[modelTypeName].findAndCountAll(options).then(result => ({
                         info: {
                             total: result.count,
@@ -232,12 +242,19 @@ const generateMutationRootType = (models, inputTypes, outputTypes) => {
                         [inputTypeName]: { type: inputType }
                     },
                     resolve: (source, args, context, info) => {
-                        const where = { [key]: args[inputTypeName][key] }
-                        // [INFO] Si se manda detalles actualizar los detalles tambien (includes)
-                        return models[inputTypeName].findOne({
-                            where,
+                        let options = {
+                            where: {
+                                [key]: args[inputTypeName][key]
+                            },
                             include: includeArrayModels
-                        }).then(object2Update => {
+                        }
+
+                        if (!options[EXPECTED_OPTIONS_KEY]) {
+                            options[EXPECTED_OPTIONS_KEY] = context['dataloaderContext'] || context
+                        }
+
+                        // [INFO] Si se manda detalles actualizar los detalles tambien (includes)
+                        return models[inputTypeName].findOne(options).then(object2Update => {
                             let promises = []
                             includeArrayModels.forEach(m => {
                                 let model = m.model
