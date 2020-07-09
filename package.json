@@ -1,0 +1,27 @@
+{
+  "name": "magic-graph",
+  "version": "0.0.1",
+  "description": "Automatic graph generator for Sequelize ORM, it's magic! 🧙‍♂️🧑🏻‍💻",
+  "main": "index.js",
+  "repository": "https://github.com/lk321/magic-graph.git",
+  "author": "Antonio Orozco <orozco6453@gmail.com>",
+  "license": "MIT",
+  "private": false,
+  "scripts": {
+    "start": "nodemon server.js"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "express-graphql": "^0.11.0",
+    "graphql": "^15.3.0",
+    "graphql-playground-middleware-express": "^1.7.18",
+    "graphql-relay": "^0.6.0",
+    "graphql-sequelize": "^9.4.0",
+    "lodash": "^4.17.19",
+    "mysql2": "^2.1.0",
+    "sequelize": "^6.3.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.4"
+  }
+}
