@@ -2,10 +2,14 @@ const _ = require('lodash')
 
 const models = require('../models')
 
+const MODEL = 'MODEL'
+const ASSOCIATION = 'ASSOCIATION'
+const SEQUELIZE = 'SEQUELIZE'
+
 module.exports = {
-    MODEL: 'MODEL',
-    ASSOCIATION: 'ASSOCIATION',
-    SEQUELIZE: 'SEQUELIZE',
+    MODEL,
+    ASSOCIATION,
+    SEQUELIZE,
     methods: (version) => ({
         findByPk: /^[56]/.test(version) ? ['findByPk'] :
             /^[4]/.test(version) ? ['findByPk', 'findById'] :
@@ -13,7 +17,7 @@ module.exports = {
     }),
     method: (target, alias) => {
         if (type(target) === MODEL) {
-            return methods(target.sequelize.constructor.version)[alias][0]
+            return module.exports.methods(target.sequelize.constructor.version)[alias][0]
         }
         throw new Error('Unknown target')
     },
