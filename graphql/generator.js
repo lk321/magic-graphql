@@ -1,10 +1,13 @@
-const fs = require('fs')
 const { GraphQLObjectType, GraphQLInputObjectType, GraphQLList, GraphQLInt, GraphQLString, GraphQLNonNull } = require('graphql')
 const { resolver, attributeFields, defaultListArgs, defaultArgs } = require('graphql-sequelize')
+const { PubSub } = require('graphql-subscriptions')
+
 const { EXPECTED_OPTIONS_KEY } = require('./dataloader')
 
 const _ = require('lodash')
 const helper = require('./helper')
+
+const pubSub = new PubSub()
 
 let cache = {} // Cache fix
 // Dataloader ⭐️
@@ -272,8 +275,13 @@ const generateMutationRootType = (models, inputTypes, outputTypes) => {
                         args: {
                             [inputTypeName]: { type: inputType }
                         },
-                        resolve: (source, args, context, info) => {
-                            return models[inputTypeName].create(args[inputTypeName], { include: includeArrayModels })
+                        resolve: async (source, args, context, info) => {
+                            const newObject = await models[inputTypeName].create(args[inputTypeName], { include: includeArrayModels })
+
+                            // SubScription
+                            pubSub.publish(`${_.toUpper(inputTypeName)}_ADDED`, { [`${inputTypeNameUpperCase}Added`]: newObject.dataValues })
+
+                            return newObject
                         }
                     },
                     [`update${_.startCase(inputTypeNameUpperCase)}`]: {
@@ -308,6 +316,9 @@ const generateMutationRootType = (models, inputTypes, outputTypes) => {
                                 promises.push(object2Update.update(args[inputTypeName]))
 
                                 return Promise.all(promises).then(ups => {
+                                    // SubScription
+                                    pubSub.publish(`${_.toUpper(inputTypeName)}_UPDATED`, { [`${inputTypeNameUpperCase}Updated`]: Object.assign({}, object2Update.dataValues, args[inputTypeName]) })
+
                                     // `boolean` equals the number of rows affected (0 or 1)
                                     return resolver(models[inputTypeName])(
                                         source,
@@ -325,7 +336,14 @@ const generateMutationRootType = (models, inputTypes, outputTypes) => {
                         args: {
                             [key]: { type: new GraphQLNonNull(GraphQLInt) }
                         },
-                        resolve: (value, where) => models[inputTypeName].destroy({ where }) // Returns the number of rows affected (0 or 1)
+                        resolve: async (value, where) => {
+                            const deletedRows = await models[inputTypeName].destroy({ where }) // Returns the number of rows affected (0 or 1)
+
+                            // SubScription
+                            if (deletedRows > 0) pubSub.publish(`${_.toUpper(inputTypeName)}_DELETED`, { [`${inputTypeNameUpperCase}Deleted`]: where[key] })
+
+                            return deletedRows
+                        }
                     }
                 }, customs)
 
@@ -333,6 +351,35 @@ const generateMutationRootType = (models, inputTypes, outputTypes) => {
             },
             {}
         )
+    })
+}
+
+const generateSubscriptionRootType = (inputTypes, outputTypes) => {
+    return new GraphQLObjectType({
+        name: 'Subscription',
+        fields: Object.keys(inputTypes).reduce((fields, inputTypeName) => {
+            // UpperCase 
+            const inputTypeNameUpperCase = inputTypeName.split('_').map((s, i) => i == 0 ? s : _.upperFirst(s)).join('')
+
+            return Object.assign(fields, {
+                [`${inputTypeNameUpperCase}Added`]: {
+                    type: outputTypes[inputTypeName],
+                    description: `${_.startCase(inputTypeNameUpperCase)} subscription for added event`,
+                    // resolve: (payload) => payload,
+                    subscribe: (_root, _args) => pubSub.asyncIterator([`${_.toUpper(inputTypeName)}_ADDED`])
+                },
+                [`${inputTypeNameUpperCase}Updated`]: {
+                    type: outputTypes[inputTypeName],
+                    description: `${_.startCase(inputTypeNameUpperCase)} subscription for updated event`,
+                    subscribe: (_root, _args) => pubSub.asyncIterator([`${_.toUpper(inputTypeName)}_UPDATED`])
+                },
+                [`${inputTypeNameUpperCase}Deleted`]: {
+                    type: GraphQLInt,
+                    description: `${_.startCase(inputTypeNameUpperCase)} subscription for deleted event`,
+                    subscribe: (_root, _args) => pubSub.asyncIterator([`${_.toUpper(inputTypeName)}_DELETED`])
+                }
+            })
+        }, {})
     })
 }
 
@@ -354,17 +401,15 @@ const getDeepAssociations = (modelName, models) => {
 // This function is exported
 const generateSchema = (models, types) => {
     const modelTypes = types || generateModelTypes(models)
-    const queries = generateQueryRootType(models, modelTypes.outputTypes)
 
-    const mutations = generateMutationRootType(
-        models,
-        modelTypes.inputTypes,
-        modelTypes.outputTypes
-    )
+    const queries = generateQueryRootType(models, modelTypes.outputTypes)
+    const mutations = generateMutationRootType(models, modelTypes.inputTypes, modelTypes.outputTypes)
+    const subscriptions = generateSubscriptionRootType(modelTypes.inputTypes, modelTypes.outputTypes)
 
     return {
         query: queries,
-        mutation: mutations
+        mutation: mutations,
+        subscription: subscriptions
     }
 }
 

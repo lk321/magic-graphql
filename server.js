@@ -1,5 +1,5 @@
 const fs = require('fs')
-const path = require('path')
+const http = require('http')
 const express = require('express')
 
 const configApp = JSON.parse(fs.readFileSync('config.json', 'utf8'))
@@ -10,11 +10,12 @@ global.ConfigApp = configApp[env]
 const app = express()
 
 // ! GraphQL setup
-const { graphiqlServer, playground } = require('./graphql')
+const apolloServer = require('./graphql')
 
-app.use('/graphql', graphiqlServer)
-app.use('/playground', playground)
+apolloServer.applyMiddleware({ app, path: '/graphql' })
 
-app.listen(global.ConfigApp, () => {
+const httpServer = http.createServer(app)
+apolloServer.installSubscriptionHandlers(httpServer) 
+httpServer.listen(global.ConfigApp, () => {
     console.log(`✅ Starting server on port ${global.ConfigApp.port}`)
 })
