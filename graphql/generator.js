@@ -1,16 +1,12 @@
 const fs = require('fs')
 const { GraphQLObjectType, GraphQLInputObjectType, GraphQLList, GraphQLInt, GraphQLString, GraphQLNonNull } = require('graphql')
 const { resolver, attributeFields, defaultListArgs, defaultArgs } = require('graphql-sequelize')
-const { EXPECTED_OPTIONS_KEY } = require('dataloader-sequelize')
+const { EXPECTED_OPTIONS_KEY } = require('./dataloader')
 
 const _ = require('lodash')
 const helper = require('./helper')
 
-// Dir for customs graphs
-const customQueryPath = './custom'
-// Cache fix
-let cache = {}
-
+let cache = {} // Cache fix
 // Dataloader ⭐️
 resolver.contextToOptions = {
     dataloaderContext: [EXPECTED_OPTIONS_KEY]
@@ -99,7 +95,9 @@ const generateModelTypes = models => {
 
     return { outputTypes, inputTypes }
 }
-
+/**
+ * Info type
+ */
 const infoType = new GraphQLObjectType({
     name: 'info',
     fields: () => ({
@@ -118,198 +116,223 @@ const infoType = new GraphQLObjectType({
  * @param {*} models The sequelize models used to create the root `GraphQLSchema`
  */
 const generateQueryRootType = (models, outputTypes) => {
-    let fields = Object.keys(outputTypes).reduce((fields, modelTypeName) => {
-        const modelType = outputTypes[modelTypeName]
+    return new GraphQLObjectType({
+        name: 'Query',
+        fields: Object.keys(outputTypes).reduce(
+            (fields, modelTypeName) => {
+                const modelType = outputTypes[modelTypeName]
 
-        return Object.assign(fields, {
-            [_.lowerFirst(modelType.name)]: {
-                type: new GraphQLList(modelType),
-                args: Object.assign(
-                    defaultArgs(models[modelTypeName]),
-                    defaultListArgs()
-                ),
-                resolve: resolver(models[modelTypeName])
-            },
-            [_.lowerFirst(modelType.name + 'Pagination')]: {
-                type: new GraphQLObjectType({
-                    name: modelType.name + 'Result',
-                    fields: () => ({
-                        info: {
-                            type: infoType
-                        },
-                        results: {
-                            type: new GraphQLList(modelType)
-                        }
-                    })
-                }),
-                args: Object.assign(
-                    defaultArgs(models[modelTypeName]),
-                    {
-                        page: {
-                            type: GraphQLInt
-                        },
-                        pageSize: {
-                            type: GraphQLInt
-                        },
-                        order: {
-                            type: new GraphQLList(new GraphQLList(GraphQLString))
-                        }
-                    }
-                ),
-                resolve: (parent, args, context) => {
-                    let options = {}
-                    if (args['where']) {
-                        let whereObjectParsed = args['where']
-                        for (var key in args['where']) {
-                            var value = args['where'][key]
-                            if (value && typeof value === 'string' && value.includes('%')) {
-                                whereObjectParsed[key] = { [models.Op.like]: value }
+                /**
+                 * ? Antonio
+                 * TODO: Mirar si tiene custom resolvers y colocarlos a los de default
+                 * 
+                 */
+                let customs = {}
+                if (models[modelTypeName]['options'] && models[modelTypeName]['options']['resolvers'] && models[modelTypeName]['options']['resolvers']['query']) {
+                    for (var key in models[modelTypeName]['options']['resolvers']['query']) {
+                        if (!models[modelTypeName]['options']['resolvers']['query'].hasOwnProperty(key)) continue;
+                        let query = models[modelTypeName]['options']['resolvers']['query'][key]
+
+                        if (typeof query !== 'function') {
+                            customs[key] = query
+                        } else {
+                            customs[key] = {
+                                type: new GraphQLList(modelType),
+                                args: Object.assign(
+                                    defaultArgs(models[modelTypeName]),
+                                    defaultListArgs()
+                                ),
+                                resolve: query
                             }
                         }
-
-                        options['where'] = whereObjectParsed
                     }
-
-                    if (args['order']) {
-                        options['order'] = args['order']
-                    }
-
-                    options['limit'] = args['pageSize'] ? parseInt(args['pageSize']) : 10
-                    options['offset'] = args['page'] ? (args['page'] - 1) * options['limit'] : 0
-
-                    if (!options[EXPECTED_OPTIONS_KEY]) {
-                        options[EXPECTED_OPTIONS_KEY] = context['dataloaderContext'] || context
-                    }
-
-                    return models[modelTypeName].findAndCountAll(options).then(result => ({
-                        info: {
-                            total: result.count,
-                            pageSize: options['limit'],
-                            page: args['page'] || 1
-                        },
-                        results: result.rows
-                    }))
                 }
-            }
-        })
-    }, {})
 
-    let customQueries = {}
-    if (fs.existsSync(`${customQueryPath}/query`)) {
-        fs.readdirSync(`${customQueryPath}/query`)
-            .filter(file => file.slice(-3) === '.js')
-            .forEach((file) => {
-                let objQuery = require(`${customQueryPath}/query/${file}`)
+                return Object.assign(fields, {
+                    [_.lowerFirst(modelType.name)]: {
+                        type: modelType,
+                        args: Object.assign(
+                            defaultArgs(models[modelTypeName]),
+                            defaultListArgs()
+                        ),
+                        resolve: resolver(models[modelTypeName])
+                    },
+                    [models[modelTypeName].options.name.plural]: {
+                        type: new GraphQLList(modelType),
+                        args: Object.assign(
+                            defaultArgs(models[modelTypeName]),
+                            defaultListArgs()
+                        ),
+                        resolve: resolver(models[modelTypeName])
+                    },
+                    [_.lowerFirst(modelType.name + 'Restful')]: {
+                        type: new GraphQLObjectType({
+                            name: modelType.name + 'Result',
+                            fields: () => ({
+                                info: {
+                                    type: infoType
+                                },
+                                results: {
+                                    type: new GraphQLList(modelType)
+                                }
+                            })
+                        }),
+                        args: Object.assign(
+                            defaultArgs(models[modelTypeName]),
+                            {
+                                page: {
+                                    type: GraphQLInt
+                                },
+                                pageSize: {
+                                    type: GraphQLInt
+                                },
+                                order: {
+                                    type: new GraphQLList(new GraphQLList(GraphQLString))
+                                }
+                            }
+                        ),
+                        resolve: (parent, args, context) => {
+                            let options = {}
+                            if (args['where']) {
+                                let whereObjectParsed = args['where']
+                                for (var key in args['where']) {
+                                    var value = args['where'][key]
+                                    if (String(value).includes('%')) {
+                                        whereObjectParsed[key] = { [models.Op.like]: value }
+                                    }
+                                }
 
-                if (!objQuery['name']) objQuery['name'] = file.replace('.js', '')
+                                options['where'] = whereObjectParsed
+                            }
 
-                customQueries[objQuery['name']] = objQuery
-            })
-    }
+                            if (args['order']) options['order'] = args['order']
 
-    return new GraphQLObjectType({
-        name: 'Root_Query',
-        fields: Object.assign(fields, customQueries)
+                            options['limit'] = args['pageSize'] ? parseInt(args['pageSize']) : 10
+                            options['offset'] = args['page'] ? (args['page'] - 1) * options['limit'] : 0
+
+                            if (!options[EXPECTED_OPTIONS_KEY]) {
+                                options[EXPECTED_OPTIONS_KEY] = context['dataloaderContext'] || context
+                            }
+
+                            return models[modelTypeName].findAndCountAll(options).then(result => ({
+                                info: {
+                                    total: result.count,
+                                    pageSize: options['limit'],
+                                    page: args['page'] || 1
+                                },
+                                results: result.rows
+                            }))
+                        }
+                    }
+                }, customs)
+            },
+            {}
+        )
     })
 }
 
 const generateMutationRootType = (models, inputTypes, outputTypes) => {
-    let fields = Object.keys(inputTypes).reduce(
-        (fields, inputTypeName) => {
-            const inputType = inputTypes[inputTypeName]
-            const key = models[inputTypeName].primaryKeyAttributes[0]
-            // TODO: Deep hasmany associations
-            const includeArrayModels = getDeepAssociations(inputTypeName, models)
-
-            // UpperCase 
-            let inputTypeNameUpperCase = inputTypeName.split('_').map((s, i) => i == 0 ? s : _.upperFirst(s)).join('')
-
-            const toReturn = Object.assign(fields, {
-                [inputTypeNameUpperCase + 'Create']: {
-                    type: outputTypes[inputTypeName], // what is returned by resolve, must be of type GraphQLObjectType
-                    description: 'Create a ' + inputTypeName,
-                    args: {
-                        [inputTypeName]: { type: inputType }
-                    },
-                    resolve: (source, args, context, info) => {
-                        return models[inputTypeName].create(args[inputTypeName], { include: includeArrayModels })
-                    }
-                },
-                [inputTypeNameUpperCase + 'Update']: {
-                    type: outputTypes[inputTypeName],
-                    description: 'Update a ' + inputTypeName,
-                    args: {
-                        [inputTypeName]: { type: inputType }
-                    },
-                    resolve: (source, args, context, info) => {
-                        let options = {
-                            where: {
-                                [key]: args[inputTypeName][key]
-                            },
-                            include: includeArrayModels
-                        }
-
-                        if (!options[EXPECTED_OPTIONS_KEY]) {
-                            options[EXPECTED_OPTIONS_KEY] = context['dataloaderContext'] || context
-                        }
-
-                        // [INFO] Si se manda detalles actualizar los detalles tambien (includes)
-                        return models[inputTypeName].findOne(options).then(object2Update => {
-                            let promises = []
-                            includeArrayModels.forEach(m => {
-                                let model = m.model
-                                if (model.options && model.options.name && model.options.name.plural) {
-                                    if (model.options.name.plural in args[inputTypeName]) {
-                                        promises.push(helper.upsertArray(model.options.name.plural, args[inputTypeName][model.options.name.plural], object2Update, `${inputTypeName}_id`, args[inputTypeName][key], m.include))
-                                    }
-                                }
-                            })
-
-                            // Actualizar datos
-                            promises.push(object2Update.update(args[inputTypeName]))
-
-                            return Promise.all(promises).then(ups => {
-                                // `boolean` equals the number of rows affected (0 or 1)
-                                return resolver(models[inputTypeName])(
-                                    source,
-                                    options.where,
-                                    context,
-                                    info
-                                )
-                            })
-                        })
-                    }
-                },
-                [inputTypeNameUpperCase + 'Delete']: {
-                    type: GraphQLInt,
-                    description: 'Delete a ' + inputTypeName,
-                    args: {
-                        [key]: { type: new GraphQLNonNull(GraphQLInt) }
-                    },
-                    resolve: (value, where) => models[inputTypeName].destroy({ where }) // Returns the number of rows affected (0 or 1)
-                }
-            })
-            return toReturn
-        },
-        {}
-    )
-
-    let customQueries = {}
-    if (fs.existsSync(`${customQueryPath}/mutation`)) {
-        fs.readdirSync(`${customQueryPath}/mutation`)
-            .filter(file => file.slice(-3) === '.js')
-            .forEach((file) => {
-                let objQuery = require(`${customQueryPath}/mutation/${file}`)
-
-                if (!objQuery['name']) objQuery['name'] = file.replace('.js', '')
-
-                customQueries[objQuery['name']] = objQuery
-            })
-    }
-
     return new GraphQLObjectType({
-        name: 'Root_Mutations',
-        fields: Object.assign(fields, customQueries)
+        name: 'Mutation',
+        fields: Object.keys(inputTypes).reduce(
+            (fields, inputTypeName) => {
+                const inputType = inputTypes[inputTypeName]
+                const key = models[inputTypeName].primaryKeyAttributes[0]
+
+                // Deep hasmany associations
+                const includeArrayModels = getDeepAssociations(inputTypeName, models)
+
+                // UpperCase 
+                let inputTypeNameUpperCase = inputTypeName.split('_').map((s, i) => i == 0 ? s : _.upperFirst(s)).join('')
+
+                let customs = {}
+                if (models[inputTypeName]['options'] && models[inputTypeName]['options']['resolvers'] && models[inputTypeName]['options']['resolvers']['mutation']) {
+                    for (var keyMutation in models[inputTypeName]['options']['resolvers']['mutation']) {
+                        if (!models[inputTypeName]['options']['resolvers']['mutation'].hasOwnProperty(keyMutation)) continue;
+                        let mutation = models[inputTypeName]['options']['resolvers']['mutation'][keyMutation]
+
+                        if (typeof mutation !== 'function') {
+                            customs[keyMutation] = mutation
+                        } else {
+                            customs[keyMutation] = {
+                                type: outputTypes[inputTypeName],
+                                args: {
+                                    [inputTypeName]: { type: inputType }
+                                },
+                                resolve: mutation
+                            }
+                        }
+                    }
+                }
+
+                const toReturn = Object.assign(fields, {
+                    [`add${_.startCase(inputTypeNameUpperCase)}`]: {
+                        type: outputTypes[inputTypeName], // what is returned by resolve, must be of type GraphQLObjectType
+                        description: 'Create a ' + inputTypeName,
+                        args: {
+                            [inputTypeName]: { type: inputType }
+                        },
+                        resolve: (source, args, context, info) => {
+                            return models[inputTypeName].create(args[inputTypeName], { include: includeArrayModels })
+                        }
+                    },
+                    [`update${_.startCase(inputTypeNameUpperCase)}`]: {
+                        type: outputTypes[inputTypeName],
+                        description: 'Update a ' + inputTypeName,
+                        args: {
+                            [inputTypeName]: { type: inputType }
+                        },
+                        resolve: (source, args, context, info) => {
+                            let options = {
+                                where: { [key]: args[inputTypeName][key] },
+                                include: includeArrayModels
+                            }
+
+                            if (!options[EXPECTED_OPTIONS_KEY]) {
+                                options[EXPECTED_OPTIONS_KEY] = context['dataloaderContext'] || context
+                            }
+
+                            // [INFO] Si se manda detalles actualizar los detalles tambien (includes)
+                            return models[inputTypeName].findOne(options).then(object2Update => {
+                                let promises = []
+                                includeArrayModels.forEach(m => {
+                                    let model = m.model
+                                    if (model.options && model.options.name && model.options.name.plural) {
+                                        if (model.options.name.plural in args[inputTypeName]) {
+                                            promises.push(helper.upsertArray(model.options.name.plural, args[inputTypeName][model.options.name.plural], object2Update, `${inputTypeName}_id`, args[inputTypeName][key], m.include))
+                                        }
+                                    }
+                                })
+
+                                // Actualizar datos
+                                promises.push(object2Update.update(args[inputTypeName]))
+
+                                return Promise.all(promises).then(ups => {
+                                    // `boolean` equals the number of rows affected (0 or 1)
+                                    return resolver(models[inputTypeName])(
+                                        source,
+                                        options.where,
+                                        context,
+                                        info
+                                    )
+                                })
+                            })
+                        }
+                    },
+                    [`delete${_.startCase(inputTypeNameUpperCase)}`]: {
+                        type: GraphQLInt,
+                        description: 'Delete a ' + inputTypeName,
+                        args: {
+                            [key]: { type: new GraphQLNonNull(GraphQLInt) }
+                        },
+                        resolve: (value, where) => models[inputTypeName].destroy({ where }) // Returns the number of rows affected (0 or 1)
+                    }
+                }, customs)
+
+                return toReturn
+            },
+            {}
+        )
     })
 }
 

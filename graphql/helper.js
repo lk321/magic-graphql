@@ -3,6 +3,29 @@ const _ = require('lodash')
 const models = require('../models')
 
 module.exports = {
+    MODEL: 'MODEL',
+    ASSOCIATION: 'ASSOCIATION',
+    SEQUELIZE: 'SEQUELIZE',
+    methods: (version) => ({
+        findByPk: /^[56]/.test(version) ? ['findByPk'] :
+            /^[4]/.test(version) ? ['findByPk', 'findById'] :
+                ['findById', 'findByPrimary']
+    }),
+    method: (target, alias) => {
+        if (type(target) === MODEL) {
+            return methods(target.sequelize.constructor.version)[alias][0]
+        }
+        throw new Error('Unknown target')
+    },
+    type: (target) => {
+        if (target.associationType) {
+            return ASSOCIATION
+        } else if (/(SequelizeModel|class extends Model)/.test(target.toString()) || models.Sequelize.Model.isPrototypeOf(target)) {
+            return MODEL
+        } else {
+            return SEQUELIZE
+        }
+    },
     upsert: (modelName, data, idField) => {
         var where = {}
         if (typeof idField === 'string') {
@@ -86,12 +109,12 @@ module.exports = {
         const operators = ['*', '/', '+', '-']
         let returnVar = {}
         operators.forEach(o => {
-            if(str.includes(o)) {
+            if (str.includes(o)) {
                 let [op1, op2] = str.split(o)
-                
+
                 returnVar[o] = []
-    
-                if(isNaN(op1)) {
+
+                if (isNaN(op1)) {
                     // field
                     returnVar.push({
                         type: 'field',
@@ -107,7 +130,7 @@ module.exports = {
             }
         })
 
-        if(Object.keys(returnVar).length === 0) returnVar['field'] = str.trim()
+        if (Object.keys(returnVar).length === 0) returnVar['field'] = str.trim()
 
         return returnVar
     }

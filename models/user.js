@@ -36,6 +36,14 @@ module.exports = function (sequelize, DataTypes) {
             defaultValue: true
         }
     }, {
-        tableName: 'user'
+        tableName: 'user',
+        resolvers: {
+            query: {
+                // Create customs queries
+            },
+            mutation: {
+                // Create customs mutations
+            }
+        }
     })
 }
