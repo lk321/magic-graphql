@@ -13,8 +13,8 @@ const apolloServer = new ApolloServer({
     context: {
         dataloaderContext: createContext(models.sequelize, {
             max: 500,
-            cache: true, // habilitar cache
-            batch: true // habilitar natching
+            cache: true, // enable cache
+            batch: true // enable batching
         })
     }
 })
