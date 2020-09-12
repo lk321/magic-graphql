@@ -234,7 +234,7 @@ const generateQueryRootType = (models, outputTypes) => {
     })
 }
 
-const generateMutationRootType = (models, inputTypes, outputTypes) => {
+const generateMutationRootType = (models, inputTypes, outputTypes, generateSubscriptions = false) => {
     return new GraphQLObjectType({
         name: 'Mutation',
         fields: Object.keys(inputTypes).reduce(
@@ -279,7 +279,7 @@ const generateMutationRootType = (models, inputTypes, outputTypes) => {
                             const newObject = await models[inputTypeName].create(args[inputTypeName], { include: includeArrayModels })
 
                             // SubScription
-                            pubSub.publish(`${_.toUpper(inputTypeName)}_ADDED`, { [`${inputTypeNameUpperCase}Added`]: newObject.dataValues })
+                            if (generateSubscriptions) pubSub.publish(`${_.toUpper(inputTypeName)}_ADDED`, { [`${inputTypeNameUpperCase}Added`]: newObject.dataValues })
 
                             return newObject
                         }
@@ -317,7 +317,7 @@ const generateMutationRootType = (models, inputTypes, outputTypes) => {
 
                                 return Promise.all(promises).then(ups => {
                                     // SubScription
-                                    pubSub.publish(`${_.toUpper(inputTypeName)}_UPDATED`, { [`${inputTypeNameUpperCase}Updated`]: Object.assign({}, object2Update.dataValues, args[inputTypeName]) })
+                                    if (generateSubscriptions) pubSub.publish(`${_.toUpper(inputTypeName)}_UPDATED`, { [`${inputTypeNameUpperCase}Updated`]: Object.assign({}, object2Update.dataValues, args[inputTypeName]) })
 
                                     // `boolean` equals the number of rows affected (0 or 1)
                                     return resolver(models[inputTypeName])(
@@ -340,7 +340,7 @@ const generateMutationRootType = (models, inputTypes, outputTypes) => {
                             const deletedRows = await models[inputTypeName].destroy({ where }) // Returns the number of rows affected (0 or 1)
 
                             // SubScription
-                            if (deletedRows > 0) pubSub.publish(`${_.toUpper(inputTypeName)}_DELETED`, { [`${inputTypeNameUpperCase}Deleted`]: where[key] })
+                            if (deletedRows > 0 && generateSubscriptions) pubSub.publish(`${_.toUpper(inputTypeName)}_DELETED`, { [`${inputTypeNameUpperCase}Deleted`]: where[key] })
 
                             return deletedRows
                         }
@@ -399,18 +399,20 @@ const getDeepAssociations = (modelName, models) => {
 }
 
 // This function is exported
-const generateSchema = (models, types) => {
+const generateSchema = (models, types, generateSubscriptions = false) => {
     const modelTypes = types || generateModelTypes(models)
 
     const queries = generateQueryRootType(models, modelTypes.outputTypes)
-    const mutations = generateMutationRootType(models, modelTypes.inputTypes, modelTypes.outputTypes)
-    const subscriptions = generateSubscriptionRootType(modelTypes.inputTypes, modelTypes.outputTypes)
+    const mutations = generateMutationRootType(models, modelTypes.inputTypes, modelTypes.outputTypes, generateSubscriptions)
 
-    return {
+    let schema = {
         query: queries,
-        mutation: mutations,
-        subscription: subscriptions
+        mutation: mutations
     }
+
+    if (generateSubscriptions) schema['subscription'] = generateSubscriptionRootType(modelTypes.inputTypes, modelTypes.outputTypes)
+
+    return schema
 }
 
 module.exports = {

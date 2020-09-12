@@ -2,20 +2,21 @@ const fs = require('fs')
 const http = require('http')
 const express = require('express')
 
+const graphqlServer = require('./graphql')
+
 const configApp = JSON.parse(fs.readFileSync('config.json', 'utf8'))
 const env = process.env.PRODUCTION ? 'production' : configApp.env
 
 global.ConfigApp = configApp[env]
 
 const app = express()
+const httpServer = http.createServer(app)
 
 // ! GraphQL setup
-const apolloServer = require('./graphql')
+graphqlServer(app, httpServer, {
+    subscriptions: true // Enable graphql subscriptions
+})
 
-apolloServer.applyMiddleware({ app, path: '/graphql' })
-
-const httpServer = http.createServer(app)
-apolloServer.installSubscriptionHandlers(httpServer) 
 httpServer.listen(global.ConfigApp, () => {
     console.log(`✅ Starting server on port ${global.ConfigApp.port}`)
 })
