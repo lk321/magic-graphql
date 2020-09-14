@@ -20,7 +20,8 @@
     "graphql-subscriptions": "^1.1.0",
     "lodash": "^4.17.20",
     "mysql2": "^2.1.0",
-    "sequelize": "^5.22.2"
+    "sequelize": "^6.3.5",
+    "shimmer": "^1.2.1"
   },
   "devDependencies": {
     "nodemon": "^2.0.4"
