@@ -11,29 +11,6 @@ or
 [`yarn`](https://yarnpkg.com/en/)
 command line tools.
 
-## Config file example
-
-```sh
-{
-    "env": "dev",
-    "dev": {
-        "port": 3001,
-        "db": {
-            "logger": false,
-            "dialect": "mysql",
-            "host": "localhost",
-            "database": "DB",
-            "user": "USER",
-            "password": "PASSWORD",
-            "port": 3306,
-            "force_sync": false,
-            "alter_sync": false
-        },
-        "secret": "crypto-signing"
-    }
-}
-```
-
 ## Example
 
 ```js
