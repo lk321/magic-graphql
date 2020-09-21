@@ -5,7 +5,7 @@ const { createContext } = require('./dataloader')
 const { generateSchema } = require('./generator')
 
 const defaultOptions = {
-    modelDirPath: '../models',
+    modelDirPath: null,
     graphqlEndpint: '/graphql',
     subscriptions: false,
     httpServer: null,
@@ -25,7 +25,7 @@ module.exports = (app, options = defaultOptions) => {
     options = Object.assign({}, defaultOptions, options)
 
     if (!app) throw new Error("app is required")
-    if (!options.modelDirPath || (typeof options.modelDirPath !== 'string' && typeof options.modelDirPath !== 'object')) throw new Error("options.modelDirPath has an incorrect value")
+    if (!options.modelDirPath || (typeof options.modelDirPath !== 'string' && typeof options.modelDirPath !== 'object')) throw new Error("options.modelDirPath has an incorrect value, this option is required")
     if (options.dataloader && !options.dataloaderOptions) throw new Error("dataloaderOptions can't be null")
     if (options.subscriptions && !options.httpServer) throw new Error("httpServer is required for subscriptions")
 

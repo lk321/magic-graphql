@@ -307,7 +307,7 @@ const generateMutationRootType = (models, inputTypes, outputTypes, generateSubsc
                                     let model = m.model
                                     if (model.options && model.options.name && model.options.name.plural) {
                                         if (model.options.name.plural in args[inputTypeName]) {
-                                            promises.push(helper.upsertArray(model.options.name.plural, args[inputTypeName][model.options.name.plural], object2Update, `${inputTypeName}_id`, args[inputTypeName][key], m.include))
+                                            promises.push(helper.upsertArray(models, model.options.name.plural, args[inputTypeName][model.options.name.plural], object2Update, `${inputTypeName}_id`, args[inputTypeName][key], m.include))
                                         }
                                     }
                                 })

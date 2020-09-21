@@ -1,6 +1,6 @@
 const _ = require('lodash')
 
-const models = require('../models')
+const Sequelize = require('sequelize')
 
 const MODEL = 'MODEL'
 const ASSOCIATION = 'ASSOCIATION'
@@ -24,13 +24,13 @@ module.exports = {
     type: (target) => {
         if (target.associationType) {
             return ASSOCIATION
-        } else if (/(SequelizeModel|class extends Model)/.test(target.toString()) || models.Sequelize.Model.isPrototypeOf(target)) {
+        } else if (/(SequelizeModel|class extends Model)/.test(target.toString()) || Sequelize.Model.isPrototypeOf(target)) {
             return MODEL
         } else {
             return SEQUELIZE
         }
     },
-    upsert: (modelName, data, idField) => {
+    upsert: (models, modelName, data, idField) => {
         var where = {}
         if (typeof idField === 'string') {
             where[idField] = data[idField]
@@ -52,7 +52,7 @@ module.exports = {
             }
         })
     },
-    upsertArray: (array_name, array_data, object_data, father_id, id, modelInclude = []) => {
+    upsertArray: (models, array_name, array_data, object_data, father_id, id, modelInclude = []) => {
         var promises = []
         if (Array.isArray(array_data)) {
             if (Array.isArray(object_data[array_name])) {
@@ -73,7 +73,7 @@ module.exports = {
                                             },
                                             include: modelInclude
                                         }).then(object2Update => {
-                                            return module.exports.upsertArray(m.model.options.name.plural, found[m.model.options.name.plural], object2Update, `${array_name.slice(0, -1)}_id`, found.id, m.include)
+                                            return module.exports.upsertArray(models, m.model.options.name.plural, found[m.model.options.name.plural], object2Update, `${array_name.slice(0, -1)}_id`, found.id, m.include)
                                         }))
                                     }
                                 }
