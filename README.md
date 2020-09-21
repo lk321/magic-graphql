@@ -11,6 +11,8 @@ or
 [`yarn`](https://yarnpkg.com/en/)
 command line tools.
 
+```js $ yarn add https://github.com/lk321/magic-graph```
+
 ## Example
 
 This is an [example](https://github.com/lk321/magic-graph-example) of how to use the library 💪
