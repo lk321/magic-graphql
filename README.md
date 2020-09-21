@@ -13,6 +13,8 @@ command line tools.
 
 ## Example
 
+This is an [example](https://github.com/lk321/magic-graph-example) of how to use the library 💪
+
 ```js
 const http = require('http')
 const express = require('express')
