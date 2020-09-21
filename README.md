@@ -69,12 +69,21 @@ httpServer.listen(global.ConfigApp, () => {
 
   | Option Key | Type | Default | Description |
   | ---------- | ---- | ------- | ----------- |
+  | *modelDirPath*  | String / Object | `../models` | Path where the models folder is located.
+  | *graphqlEndpint*  | String | `/graphql` | GraphQL endpoint.
+  | *subscriptions*  | Boolean | `false` | Set to `true` to enable GraphQL subscriptions, this requires an http server.
+  | *httpServer* | Object | `null` | HttpServer it is required to be able to use GraphQL subscriptions.
+  | *dataloader*  | Boolean | `true` | Set to `false` to disable dataloader.
+  | *dataloaderOptions* | Object | `{ ... }` | Dataloader [options](#dataloader-options).
+  | *context* | Object | `{}` | Context object.
+
+#### Dataloader options
+
+  | Option Key | Type | Default | Description |
+  | ---------- | ---- | ------- | ----------- |
   | *batch*  | Boolean | `true` | Set to `false` to disable batching, invoking `batchLoadFn` with a single load key. This is equivalent to setting `maxBatchSize` to `1`.
-  | *maxBatchSize* | Number | `Infinity` | Limits the number of items that get passed in to the `batchLoadFn`. May be set to `1` to disable batching.
-  | *batchScheduleFn* | Function | See [Batch scheduling](#batch-scheduling) | A function to schedule the later execution of a batch. The function is expected to call the provided callback in the immediate future.
+  | *max* | Number | `500` | Limits the number of items that get passed in to the `batchLoadFn`. May be set to `1` to disable batching.
   | *cache* | Boolean | `true` | Set to `false` to disable memoization caching, creating a new Promise and new key in the `batchLoadFn` for every load of the same key. This is equivalent to setting `cacheMap` to `null`.
-  | *cacheKeyFn* | Function | `key => key` | Produces cache key for a given load key. Useful when objects are keys and two objects should be considered equivalent.
-  | *cacheMap* | Object | `new Map()` | Instance of [Map][] (or an object with a similar API) to be used as cache. May be set to `null` to disable caching.
 
 ## Dependencies
 
