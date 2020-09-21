@@ -81,9 +81,9 @@ httpServer.listen(global.ConfigApp, () => {
 
   | Option Key | Type | Default | Description |
   | ---------- | ---- | ------- | ----------- |
-  | *batch*  | Boolean | `true` | Set to `false` to disable batching, invoking `batchLoadFn` with a single load key. This is equivalent to setting `maxBatchSize` to `1`.
-  | *max* | Number | `500` | Limits the number of items that get passed in to the `batchLoadFn`. May be set to `1` to disable batching.
-  | *cache* | Boolean | `true` | Set to `false` to disable memoization caching, creating a new Promise and new key in the `batchLoadFn` for every load of the same key. This is equivalent to setting `cacheMap` to `null`.
+  | *batch*  | Boolean | `true` | Set to `false` to disable batching.
+  | *max* | Number | `500` | Limits the number of items that get passed in to the batch. May be set to `1` to disable batching.
+  | *cache* | Boolean | `true` | Set to `false` to disable memoization caching.
 
 ## Dependencies
 
