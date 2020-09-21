@@ -13,7 +13,9 @@ const app = express()
 const httpServer = http.createServer(app)
 
 // ! GraphQL setup
-graphqlServer(app, httpServer, {
+graphqlServer(app, {
+    modelDirPath: require('./models'),
+    httpServer: httpServer,
     subscriptions: true // Enable graphql subscriptions
 })
 

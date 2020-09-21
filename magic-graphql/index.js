@@ -6,8 +6,9 @@ const { generateSchema } = require('./generator')
 
 const defaultOptions = {
     modelDirPath: '../models',
-    graphqlPath: '/graphql',
+    graphqlEndpint: '/graphql',
     subscriptions: false,
+    httpServer: null,
     dataloader: true,
     dataloaderOptions: { max: 500, cache: true, batch: true },
     context: {}
@@ -16,20 +17,21 @@ const defaultOptions = {
 /**
  * Library's constructor magic-graphql
  * @param {*} app app express object is required
- * @param {*} httpServer httpServer is required if you enable subscriptions
  * @param {*} options Options object, read library documentation for more information
  * 
  * @returns {ApolloServer} Returns object of ApolloServer
  */
-module.exports = (app, httpServer = null, options = defaultOptions) => {
+module.exports = (app, options = defaultOptions) => {
     options = Object.assign({}, defaultOptions, options)
 
     if (!app) throw new Error("app is required")
-    if (!options.modelDirPath || typeof options.modelDirPath !== 'string') throw new Error("options.modelDirPath has an incorrect value")
+    if (!options.modelDirPath || (typeof options.modelDirPath !== 'string' && typeof options.modelDirPath !== 'object')) throw new Error("options.modelDirPath has an incorrect value")
     if (options.dataloader && !options.dataloaderOptions) throw new Error("dataloaderOptions can't be null")
-    if (options.subscriptions && !httpServer) throw new Error("httpServer is required")
+    if (options.subscriptions && !options.httpServer) throw new Error("httpServer is required for subscriptions")
 
-    const models = require(options.modelDirPath)
+    let models = null
+    if (typeof options.modelDirPath === 'string') models = require(options.modelDirPath)
+    else models = options.modelDirPath
 
     let schemas = generateSchema(models, null, options.subscriptions)
 
@@ -53,8 +55,8 @@ module.exports = (app, httpServer = null, options = defaultOptions) => {
         context: options.context
     })
 
-    graphqlServer.applyMiddleware({ app, path: options.graphqlPath })
-    if (options.subscriptions) graphqlServer.installSubscriptionHandlers(httpServer)
+    graphqlServer.applyMiddleware({ app, path: options.graphqlEndpint })
+    if (options.subscriptions) graphqlServer.installSubscriptionHandlers(options.httpServer)
 
     return graphqlServer
 }

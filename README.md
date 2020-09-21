@@ -34,6 +34,48 @@ command line tools.
 }
 ```
 
+## Example
+
+```js
+const http = require('http')
+const express = require('express')
+
+const graphqlServer = require('./magic-graphql')
+
+const app = express()
+const httpServer = http.createServer(app)
+
+// ! GraphQL setup
+graphqlServer(app, {
+    modelDirPath: '../models', // Or require('../models')
+    graphqlEndpint: '/graphql',
+    subscriptions: true,
+    httpServer: httpServer,
+    dataloader: true,
+    dataloaderOptions: { 
+        max: 500, 
+        cache: true, 
+        batch: true 
+    },
+    context: {}
+})
+
+httpServer.listen(global.ConfigApp, () => {
+    console.log(`✅ Starting server`)
+})
+```
+
+## Options
+
+  | Option Key | Type | Default | Description |
+  | ---------- | ---- | ------- | ----------- |
+  | *batch*  | Boolean | `true` | Set to `false` to disable batching, invoking `batchLoadFn` with a single load key. This is equivalent to setting `maxBatchSize` to `1`.
+  | *maxBatchSize* | Number | `Infinity` | Limits the number of items that get passed in to the `batchLoadFn`. May be set to `1` to disable batching.
+  | *batchScheduleFn* | Function | See [Batch scheduling](#batch-scheduling) | A function to schedule the later execution of a batch. The function is expected to call the provided callback in the immediate future.
+  | *cache* | Boolean | `true` | Set to `false` to disable memoization caching, creating a new Promise and new key in the `batchLoadFn` for every load of the same key. This is equivalent to setting `cacheMap` to `null`.
+  | *cacheKeyFn* | Function | `key => key` | Produces cache key for a given load key. Useful when objects are keys and two objects should be considered equivalent.
+  | *cacheMap* | Object | `new Map()` | Instance of [Map][] (or an object with a similar API) to be used as cache. May be set to `null` to disable caching.
+
 ## Dependencies
 
 - [express](https://ghub.io/express): Fast, unopinionated, minimalist web framework
