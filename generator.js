@@ -154,10 +154,7 @@ const generateQueryRootType = (models, outputTypes) => {
                 return Object.assign(fields, {
                     [_.lowerFirst(modelType.name)]: {
                         type: modelType,
-                        args: Object.assign(
-                            defaultArgs(models[modelTypeName]),
-                            defaultListArgs()
-                        ),
+                        args: Object.assign(defaultArgs(models[modelTypeName])),
                         resolve: resolver(models[modelTypeName])
                     },
                     [models[modelTypeName].options.name.plural]: {
