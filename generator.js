@@ -348,34 +348,27 @@ const generateMutationRootType = (models, inputTypes, outputTypes, generateSubsc
     })
 }
 
-const generateSubscriptionRootType = (inputTypes, outputTypes) => {
-    return new GraphQLObjectType({
-        name: 'Subscription',
-        fields: Object.keys(inputTypes).reduce((fields, inputTypeName) => {
-            // UpperCase 
-            const inputTypeNameUpperCase = inputTypeName.split('_').map((s, i) => i == 0 ? s : _.upperFirst(s)).join('')
-
-            return Object.assign(fields, {
-                [`${inputTypeNameUpperCase}Added`]: {
-                    type: outputTypes[inputTypeName],
-                    description: `${_.startCase(inputTypeNameUpperCase)} subscription for added event`,
-                    // resolve: (payload) => payload,
-                    subscribe: (_root, _args) => pubSub.asyncIterator([`${_.toUpper(inputTypeName)}_ADDED`])
-                },
-                [`${inputTypeNameUpperCase}Updated`]: {
-                    type: outputTypes[inputTypeName],
-                    description: `${_.startCase(inputTypeNameUpperCase)} subscription for updated event`,
-                    subscribe: (_root, _args) => pubSub.asyncIterator([`${_.toUpper(inputTypeName)}_UPDATED`])
-                },
-                [`${inputTypeNameUpperCase}Deleted`]: {
-                    type: GraphQLInt,
-                    description: `${_.startCase(inputTypeNameUpperCase)} subscription for deleted event`,
-                    subscribe: (_root, _args) => pubSub.asyncIterator([`${_.toUpper(inputTypeName)}_DELETED`])
-                }
-            })
-        }, {})
-    })
-}
+const generateSubscriptionRootType = (inputTypes, outputTypes) => new GraphQLObjectType({
+    name: 'Subscription',
+    fields: Object.keys(inputTypes).reduce((fields, inputTypeName) => Object.assign(fields, {
+        [`${_.camelCase(inputTypeName)}Added`]: {
+            type: outputTypes[inputTypeName],
+            description: `${_.startCase(_.camelCase(inputTypeName))} subscription for added event`,
+            // resolve: (payload) => payload,
+            subscribe: (_root, _args) => pubSub.asyncIterator([`${_.toUpper(inputTypeName)}_ADDED`])
+        },
+        [`${_.camelCase(inputTypeName)}Updated`]: {
+            type: outputTypes[inputTypeName],
+            description: `${_.startCase(_.camelCase(inputTypeName))} subscription for updated event`,
+            subscribe: (_root, _args) => pubSub.asyncIterator([`${_.toUpper(inputTypeName)}_UPDATED`])
+        },
+        [`${_.camelCase(inputTypeName)}Deleted`]: {
+            type: GraphQLInt,
+            description: `${_.startCase(_.camelCase(inputTypeName))} subscription for deleted event`,
+            subscribe: (_root, _args) => pubSub.asyncIterator([`${_.toUpper(inputTypeName)}_DELETED`])
+        }
+    }), {})
+})
 
 const getDeepAssociations = (modelName, models) => {
     const associations = models[modelName].associations,
