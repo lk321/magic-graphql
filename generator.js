@@ -157,7 +157,7 @@ const generateQueryRootType = (models, outputTypes) => {
                         args: Object.assign(defaultArgs(models[modelTypeName])),
                         resolve: resolver(models[modelTypeName])
                     },
-                    [models[modelTypeName].options.name.plural]: {
+                    [_.camelCase(models[modelTypeName].options.name.plural)]: {
                         type: new GraphQLList(modelType),
                         args: Object.assign(
                             defaultArgs(models[modelTypeName]),
@@ -242,9 +242,6 @@ const generateMutationRootType = (models, inputTypes, outputTypes, generateSubsc
                 // Deep hasmany associations
                 const includeArrayModels = getDeepAssociations(inputTypeName, models)
 
-                // UpperCase 
-                let inputTypeNameUpperCase = inputTypeName.split('_').map((s, i) => i == 0 ? s : _.upperFirst(s)).join('')
-
                 let customs = {}
                 if (models[inputTypeName]['options'] && models[inputTypeName]['options']['resolvers'] && models[inputTypeName]['options']['resolvers']['mutation']) {
                     for (var keyMutation in models[inputTypeName]['options']['resolvers']['mutation']) {
@@ -266,7 +263,7 @@ const generateMutationRootType = (models, inputTypes, outputTypes, generateSubsc
                 }
 
                 const toReturn = Object.assign(fields, {
-                    [`add${_.startCase(inputTypeNameUpperCase)}`]: {
+                    [_.camelCase(`add_${inputTypeName}`)]: {
                         type: outputTypes[inputTypeName], // what is returned by resolve, must be of type GraphQLObjectType
                         description: 'Create a ' + inputTypeName,
                         args: {
@@ -276,12 +273,12 @@ const generateMutationRootType = (models, inputTypes, outputTypes, generateSubsc
                             const newObject = await models[inputTypeName].create(args[inputTypeName], { include: includeArrayModels })
 
                             // SubScription
-                            if (generateSubscriptions) pubSub.publish(`${_.toUpper(inputTypeName)}_ADDED`, { [`${inputTypeNameUpperCase}Added`]: newObject.dataValues })
+                            if (generateSubscriptions) pubSub.publish(`${_.toUpper(inputTypeName)}_ADDED`, { [`${_.camelCase(inputTypeName)}Added`]: newObject.dataValues })
 
                             return newObject
                         }
                     },
-                    [`update${_.startCase(inputTypeNameUpperCase)}`]: {
+                    [_.camelCase(`update_${inputTypeName}`)]: {
                         type: outputTypes[inputTypeName],
                         description: 'Update a ' + inputTypeName,
                         args: {
@@ -314,7 +311,7 @@ const generateMutationRootType = (models, inputTypes, outputTypes, generateSubsc
 
                                 return Promise.all(promises).then(ups => {
                                     // SubScription
-                                    if (generateSubscriptions) pubSub.publish(`${_.toUpper(inputTypeName)}_UPDATED`, { [`${inputTypeNameUpperCase}Updated`]: Object.assign({}, object2Update.dataValues, args[inputTypeName]) })
+                                    if (generateSubscriptions) pubSub.publish(`${_.toUpper(inputTypeName)}_UPDATED`, { [`${[_.camelCase(inputTypeName)]}Updated`]: Object.assign({}, object2Update.dataValues, args[inputTypeName]) })
 
                                     // `boolean` equals the number of rows affected (0 or 1)
                                     return resolver(models[inputTypeName])(
@@ -327,7 +324,7 @@ const generateMutationRootType = (models, inputTypes, outputTypes, generateSubsc
                             })
                         }
                     },
-                    [`delete${_.startCase(inputTypeNameUpperCase)}`]: {
+                    [_.camelCase(`delete_${inputTypeName}`)]: {
                         type: GraphQLInt,
                         description: 'Delete a ' + inputTypeName,
                         args: {
@@ -337,7 +334,7 @@ const generateMutationRootType = (models, inputTypes, outputTypes, generateSubsc
                             const deletedRows = await models[inputTypeName].destroy({ where }) // Returns the number of rows affected (0 or 1)
 
                             // SubScription
-                            if (deletedRows > 0 && generateSubscriptions) pubSub.publish(`${_.toUpper(inputTypeName)}_DELETED`, { [`${inputTypeNameUpperCase}Deleted`]: where[key] })
+                            if (deletedRows > 0 && generateSubscriptions) pubSub.publish(`${_.toUpper(inputTypeName)}_DELETED`, { [`${_.camelCase(inputTypeName)}Deleted`]: where[key] })
 
                             return deletedRows
                         }
