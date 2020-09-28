@@ -9,6 +9,7 @@ const helper = require('./helper')
 
 const pubSub = new PubSub()
 
+const { getProperTypeName } = helper;
 let cache = {} // Cache fix
 // Dataloader ⭐️
 resolver.contextToOptions = {
@@ -55,7 +56,7 @@ const generateAssociationFields = (associations, types, isInput = false) => {
 const generateGraphQLType = (model, types, isInput = false) => {
     const GraphQLClass = isInput ? GraphQLInputObjectType : GraphQLObjectType
 
-    const typeName = model.name.split('_').map(n => _.startCase(_.toLower(n))).join('')
+    const { upperFirst:{singular:typeName} } = getProperTypeName(model);
 
     return new GraphQLClass({
         name: isInput ? `${typeName}Input` : typeName,
@@ -124,7 +125,7 @@ const generateQueryRootType = (models, outputTypes) => {
         fields: Object.keys(outputTypes).reduce(
             (fields, modelTypeName) => {
                 const modelType = outputTypes[modelTypeName]
-
+                const { lowerFirst } = getProperTypeName( models[modelTypeName] )
                 /**
                  * ? Antonio
                  * TODO: Mirar si tiene custom resolvers y colocarlos a los de default
@@ -152,12 +153,12 @@ const generateQueryRootType = (models, outputTypes) => {
                 }
 
                 return Object.assign(fields, {
-                    [_.lowerFirst(modelType.name)]: {
+                    [ lowerFirst.singular ]: {
                         type: modelType,
                         args: Object.assign(defaultArgs(models[modelTypeName])),
                         resolve: resolver(models[modelTypeName])
                     },
-                    [_.camelCase(models[modelTypeName].options.name.plural)]: {
+                    [ lowerFirst.plural ]: {
                         type: new GraphQLList(modelType),
                         args: Object.assign(
                             defaultArgs(models[modelTypeName]),
@@ -165,9 +166,9 @@ const generateQueryRootType = (models, outputTypes) => {
                         ),
                         resolve: resolver(models[modelTypeName])
                     },
-                    [_.lowerFirst(modelType.name + 'Restful')]: {
+                    [ `${lowerFirst.singular}Restful` ]: {
                         type: new GraphQLObjectType({
-                            name: modelType.name + 'Result',
+                            name: `${lowerFirst.singular}Result`,
                             fields: () => ({
                                 info: {
                                     type: infoType
@@ -206,7 +207,6 @@ const generateQueryRootType = (models, outputTypes) => {
                             }
 
                             if (args['order']) options['order'] = args['order']
-
                             options['limit'] = args['pageSize'] ? parseInt(args['pageSize']) : 10
                             options['offset'] = args['page'] ? (args['page'] - 1) * options['limit'] : 0
 
@@ -238,6 +238,7 @@ const generateMutationRootType = (models, inputTypes, outputTypes, generateSubsc
             (fields, inputTypeName) => {
                 const inputType = inputTypes[inputTypeName]
                 const key = models[inputTypeName].primaryKeyAttributes[0]
+                const { upperFirst , toUpper } = getProperTypeName( models[inputTypeName] );
 
                 // Deep hasmany associations
                 const includeArrayModels = getDeepAssociations(inputTypeName, models)
@@ -263,7 +264,7 @@ const generateMutationRootType = (models, inputTypes, outputTypes, generateSubsc
                 }
 
                 const toReturn = Object.assign(fields, {
-                    [_.camelCase(`add_${inputTypeName}`)]: {
+                    [ `add${upperFirst.singular}`]: {
                         type: outputTypes[inputTypeName], // what is returned by resolve, must be of type GraphQLObjectType
                         description: 'Create a ' + inputTypeName,
                         args: {
@@ -273,12 +274,12 @@ const generateMutationRootType = (models, inputTypes, outputTypes, generateSubsc
                             const newObject = await models[inputTypeName].create(args[inputTypeName], { include: includeArrayModels })
 
                             // SubScription
-                            if (generateSubscriptions) pubSub.publish(`${_.toUpper(inputTypeName)}_ADDED`, { [`${_.camelCase(inputTypeName)}Added`]: newObject.dataValues })
+                            if (generateSubscriptions) pubSub.publish(`${toUpper.singular}_ADDED`, { [`${toUpper.singular}Added`]: newObject.dataValues })
 
                             return newObject
                         }
                     },
-                    [_.camelCase(`update_${inputTypeName}`)]: {
+                    [ `update${upperFirst.singular}`]: {
                         type: outputTypes[inputTypeName],
                         description: 'Update a ' + inputTypeName,
                         args: {
@@ -311,7 +312,7 @@ const generateMutationRootType = (models, inputTypes, outputTypes, generateSubsc
 
                                 return Promise.all(promises).then(ups => {
                                     // SubScription
-                                    if (generateSubscriptions) pubSub.publish(`${_.toUpper(inputTypeName)}_UPDATED`, { [`${[_.camelCase(inputTypeName)]}Updated`]: Object.assign({}, object2Update.dataValues, args[inputTypeName]) })
+                                    if (generateSubscriptions) pubSub.publish(`${toUpper.singular}_UPDATED`, { [`${upperFirst.singular}Updated`]: Object.assign({}, object2Update.dataValues, args[inputTypeName]) })
 
                                     // `boolean` equals the number of rows affected (0 or 1)
                                     return resolver(models[inputTypeName])(
@@ -324,7 +325,7 @@ const generateMutationRootType = (models, inputTypes, outputTypes, generateSubsc
                             })
                         }
                     },
-                    [_.camelCase(`delete_${inputTypeName}`)]: {
+                    [`delete${upperFirst.singular}`]: {
                         type: GraphQLInt,
                         description: 'Delete a ' + inputTypeName,
                         args: {
@@ -334,7 +335,7 @@ const generateMutationRootType = (models, inputTypes, outputTypes, generateSubsc
                             const deletedRows = await models[inputTypeName].destroy({ where }) // Returns the number of rows affected (0 or 1)
 
                             // SubScription
-                            if (deletedRows > 0 && generateSubscriptions) pubSub.publish(`${_.toUpper(inputTypeName)}_DELETED`, { [`${_.camelCase(inputTypeName)}Deleted`]: where[key] })
+                            if (deletedRows > 0 && generateSubscriptions) pubSub.publish(`${toUpper.singular}_DELETED`, { [`${upperFirst.singular}Deleted`]: where[key] })
 
                             return deletedRows
                         }
@@ -351,18 +352,19 @@ const generateMutationRootType = (models, inputTypes, outputTypes, generateSubsc
 const generateSubscriptionRootType = (inputTypes, outputTypes) => new GraphQLObjectType({
     name: 'Subscription',
     fields: Object.keys(inputTypes).reduce((fields, inputTypeName) => Object.assign(fields, {
-        [`${_.camelCase(inputTypeName)}Added`]: {
+
+        [`${_.camelCase(inputTypeName)}Added`.replace(/ /g, '')]: {
             type: outputTypes[inputTypeName],
             description: `${_.startCase(_.camelCase(inputTypeName))} subscription for added event`,
             // resolve: (payload) => payload,
             subscribe: (_root, _args) => pubSub.asyncIterator([`${_.toUpper(inputTypeName)}_ADDED`])
         },
-        [`${_.camelCase(inputTypeName)}Updated`]: {
+        [`${_.camelCase(inputTypeName)}Updated`.replace(/ /g, '')]: {
             type: outputTypes[inputTypeName],
             description: `${_.startCase(_.camelCase(inputTypeName))} subscription for updated event`,
             subscribe: (_root, _args) => pubSub.asyncIterator([`${_.toUpper(inputTypeName)}_UPDATED`])
         },
-        [`${_.camelCase(inputTypeName)}Deleted`]: {
+        [`${_.camelCase(inputTypeName)}Deleted`.replace(/ /g, '')]: {
             type: GraphQLInt,
             description: `${_.startCase(_.camelCase(inputTypeName))} subscription for deleted event`,
             subscribe: (_root, _args) => pubSub.asyncIterator([`${_.toUpper(inputTypeName)}_DELETED`])

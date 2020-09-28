@@ -1,4 +1,5 @@
 const _ = require('lodash')
+var pluralize = require('pluralize')
 
 const Sequelize = require('sequelize')
 
@@ -137,5 +138,26 @@ module.exports = {
         if (Object.keys(returnVar).length === 0) returnVar['field'] = str.trim()
 
         return returnVar
+    },
+    getProperTypeName: (model) => {
+        const { lowerCase , lowerFirst , upperCase ,toUpper, upperFirst , startCase , toLower } = _
+        let n = {};
+        const singular = model.name.split('_').map(n => startCase( toLower(n))).join('').replace(/ /g, '')
+        
+        let typeNames = {
+            lowerCase,
+            lowerFirst,
+            upperCase,
+            upperFirst,
+            toUpper
+        }
+        Object.keys(typeNames).map( o => {
+            let l = typeNames[o](singular); 
+            n[o] = {
+                singular: l,
+                plural: pluralize( l )
+            }
+        })
+        return n
     }
 }
