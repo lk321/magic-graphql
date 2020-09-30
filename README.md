@@ -1,4 +1,4 @@
-# magic-graph
+# magic-graphql
 
 Automatic graph generator for Sequelize ORM, it&#39;s magic! 🧙‍♂️🧑🏻‍💻
 
