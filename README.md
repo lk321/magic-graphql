@@ -11,7 +11,7 @@ or
 [`yarn`](https://yarnpkg.com/en/)
 command line tools.
 
-```$ yarn add https://github.com/lk321/magic-graph```
+```$ yarn add magic-graphql```
 
 ## Example
 
