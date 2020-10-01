@@ -29,8 +29,7 @@ const httpServer = http.createServer(app)
 // ! GraphQL setup
 graphqlServer(app, {
     modelDirPath: '../models', // Or require('../models')
-    customQueries: {},
-    customMutations: {},
+    customsDirPath: null,
     graphqlEndpint: '/graphql',
     subscriptions: true,
     httpServer: httpServer,
@@ -53,8 +52,7 @@ httpServer.listen(global.ConfigApp, () => {
   | Option Key | Type | Default | Description |
   | ---------- | ---- | ------- | ----------- |
   | *modelDirPath*  | String / Object | `../models` | Path where the models folder is located.
-  | *customQueries* | Object | `{}` | Custom queries.
-  | *customMutations* | Object | `{}` | Custom mutations.
+  | *customsDirPath* | String | `null` | Folder for custom queries and mutations.
   | *graphqlEndpint*  | String | `/graphql` | GraphQL endpoint.
   | *subscriptions*  | Boolean | `false` | Set to `true` to enable GraphQL subscriptions, this requires an http server.
   | *httpServer* | Object | `null` | HttpServer it is required to be able to use GraphQL subscriptions.

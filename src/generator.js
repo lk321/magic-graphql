@@ -1,3 +1,5 @@
+const fs = require('fs')
+const { join, dirname } = require('path')
 const { GraphQLObjectType, GraphQLInputObjectType, GraphQLList, GraphQLInt, GraphQLString, GraphQLNonNull } = require('graphql')
 const { resolver, attributeFields, defaultListArgs, defaultArgs } = require('graphql-sequelize')
 const { PubSub } = require('graphql-subscriptions')
@@ -56,7 +58,7 @@ const generateAssociationFields = (associations, types, isInput = false) => {
 const generateGraphQLType = (model, types, isInput = false) => {
     const GraphQLClass = isInput ? GraphQLInputObjectType : GraphQLObjectType
 
-    const { upperFirst:{singular:typeName} } = getProperTypeName(model);
+    const { upperFirst: { singular: typeName } } = getProperTypeName(model);
 
     return new GraphQLClass({
         name: isInput ? `${typeName}Input` : typeName,
@@ -125,7 +127,7 @@ const generateQueryRootType = (models, outputTypes, options) => {
         fields: Object.keys(outputTypes).reduce(
             (fields, modelTypeName) => {
                 const modelType = outputTypes[modelTypeName]
-                const { lowerFirst } = getProperTypeName( models[modelTypeName] )
+                const { lowerFirst } = getProperTypeName(models[modelTypeName])
                 /**
                  * ? Antonio
                  * TODO: Mirar si tiene custom resolvers y colocarlos a los de default
@@ -152,15 +154,29 @@ const generateQueryRootType = (models, outputTypes, options) => {
                     }
                 }
 
-                if(options.customQueries && typeof options.customQueries === 'object') customs = Object.assign({}, customs, options.customQueries) 
+                if (options.customsDirPath) {
+                    const customQueryPath = join(dirname(require.main.filename), options.customsDirPath)
+
+                    if (fs.existsSync(`${customQueryPath}/query`)) {
+                        fs.readdirSync(`${customQueryPath}/query`)
+                            .filter(file => file.slice(-3) === '.js')
+                            .forEach((file) => {
+                                let objQuery = require(`${customQueryPath}/query/${file}`)
+
+                                if (!objQuery['name']) objQuery['name'] = file.replace('.js', '')
+
+                                customs[objQuery['name']] = objQuery
+                            })
+                    }
+                }
 
                 return Object.assign(fields, {
-                    [ lowerFirst.singular ]: {
+                    [lowerFirst.singular]: {
                         type: modelType,
                         args: Object.assign(defaultArgs(models[modelTypeName])),
                         resolve: resolver(models[modelTypeName])
                     },
-                    [ lowerFirst.plural ]: {
+                    [lowerFirst.plural]: {
                         type: new GraphQLList(modelType),
                         args: Object.assign(
                             defaultArgs(models[modelTypeName]),
@@ -168,7 +184,7 @@ const generateQueryRootType = (models, outputTypes, options) => {
                         ),
                         resolve: resolver(models[modelTypeName])
                     },
-                    [ `${lowerFirst.singular}Restful` ]: {
+                    [`${lowerFirst.singular}Restful`]: {
                         type: new GraphQLObjectType({
                             name: `${lowerFirst.singular}Result`,
                             fields: () => ({
@@ -240,7 +256,7 @@ const generateMutationRootType = (models, inputTypes, outputTypes, options) => {
             (fields, inputTypeName) => {
                 const inputType = inputTypes[inputTypeName]
                 const key = models[inputTypeName].primaryKeyAttributes[0]
-                const { upperFirst , toUpper } = getProperTypeName( models[inputTypeName] );
+                const { upperFirst, toUpper } = getProperTypeName(models[inputTypeName]);
 
                 // Deep hasmany associations
                 const includeArrayModels = getDeepAssociations(inputTypeName, models)
@@ -265,10 +281,24 @@ const generateMutationRootType = (models, inputTypes, outputTypes, options) => {
                     }
                 }
 
-                if(options.customMutations && typeof options.customMutations === 'object') customs = Object.assign({}, customs, options.customMutations) 
+                if (options.customsDirPath) {
+                    const customQueryPath = join(dirname(require.main.filename), options.customsDirPath)
+
+                    if (fs.existsSync(`${customQueryPath}/mutation`)) {
+                        fs.readdirSync(`${customQueryPath}/mutation`)
+                            .filter(file => file.slice(-3) === '.js')
+                            .forEach((file) => {
+                                let objQuery = require(`${customQueryPath}/mutation/${file}`)
+
+                                if (!objQuery['name']) objQuery['name'] = file.replace('.js', '')
+
+                                customs[objQuery['name']] = objQuery
+                            })
+                    }
+                }
 
                 const toReturn = Object.assign(fields, {
-                    [ `add${upperFirst.singular}`]: {
+                    [`add${upperFirst.singular}`]: {
                         type: outputTypes[inputTypeName], // what is returned by resolve, must be of type GraphQLObjectType
                         description: 'Create a ' + inputTypeName,
                         args: {
@@ -283,7 +313,7 @@ const generateMutationRootType = (models, inputTypes, outputTypes, options) => {
                             return newObject
                         }
                     },
-                    [ `update${upperFirst.singular}`]: {
+                    [`update${upperFirst.singular}`]: {
                         type: outputTypes[inputTypeName],
                         description: 'Update a ' + inputTypeName,
                         args: {
