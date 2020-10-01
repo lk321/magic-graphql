@@ -119,7 +119,7 @@ const infoType = new GraphQLObjectType({
  * from Sequelize models.
  * @param {*} models The sequelize models used to create the root `GraphQLSchema`
  */
-const generateQueryRootType = (models, outputTypes) => {
+const generateQueryRootType = (models, outputTypes, options) => {
     return new GraphQLObjectType({
         name: 'Query',
         fields: Object.keys(outputTypes).reduce(
@@ -151,6 +151,8 @@ const generateQueryRootType = (models, outputTypes) => {
                         }
                     }
                 }
+
+                if(options.customQueries && typeof options.customQueries === 'object') customs = Object.assign({}, customs, options.customQueries) 
 
                 return Object.assign(fields, {
                     [ lowerFirst.singular ]: {
@@ -231,7 +233,7 @@ const generateQueryRootType = (models, outputTypes) => {
     })
 }
 
-const generateMutationRootType = (models, inputTypes, outputTypes, generateSubscriptions = false) => {
+const generateMutationRootType = (models, inputTypes, outputTypes, options) => {
     return new GraphQLObjectType({
         name: 'Mutation',
         fields: Object.keys(inputTypes).reduce(
@@ -263,6 +265,8 @@ const generateMutationRootType = (models, inputTypes, outputTypes, generateSubsc
                     }
                 }
 
+                if(options.customMutations && typeof options.customMutations === 'object') customs = Object.assign({}, customs, options.customMutations) 
+
                 const toReturn = Object.assign(fields, {
                     [ `add${upperFirst.singular}`]: {
                         type: outputTypes[inputTypeName], // what is returned by resolve, must be of type GraphQLObjectType
@@ -274,7 +278,7 @@ const generateMutationRootType = (models, inputTypes, outputTypes, generateSubsc
                             const newObject = await models[inputTypeName].create(args[inputTypeName], { include: includeArrayModels })
 
                             // SubScription
-                            if (generateSubscriptions) pubSub.publish(`${toUpper.singular}_ADDED`, { [`${toUpper.singular}Added`]: newObject.dataValues })
+                            if (options.subscriptions) pubSub.publish(`${toUpper.singular}_ADDED`, { [`${toUpper.singular}Added`]: newObject })
 
                             return newObject
                         }
@@ -312,7 +316,7 @@ const generateMutationRootType = (models, inputTypes, outputTypes, generateSubsc
 
                                 return Promise.all(promises).then(ups => {
                                     // SubScription
-                                    if (generateSubscriptions) pubSub.publish(`${toUpper.singular}_UPDATED`, { [`${upperFirst.singular}Updated`]: Object.assign({}, object2Update.dataValues, args[inputTypeName]) })
+                                    if (options.subscriptions) pubSub.publish(`${toUpper.singular}_UPDATED`, { [`${upperFirst.singular}Updated`]: Object.assign({}, object2Update.dataValues, args[inputTypeName]) })
 
                                     // `boolean` equals the number of rows affected (0 or 1)
                                     return resolver(models[inputTypeName])(
@@ -335,7 +339,7 @@ const generateMutationRootType = (models, inputTypes, outputTypes, generateSubsc
                             const deletedRows = await models[inputTypeName].destroy({ where }) // Returns the number of rows affected (0 or 1)
 
                             // SubScription
-                            if (deletedRows > 0 && generateSubscriptions) pubSub.publish(`${toUpper.singular}_DELETED`, { [`${upperFirst.singular}Deleted`]: where[key] })
+                            if (deletedRows > 0 && options.subscriptions) pubSub.publish(`${toUpper.singular}_DELETED`, { [`${upperFirst.singular}Deleted`]: where[key] })
 
                             return deletedRows
                         }
@@ -388,18 +392,18 @@ const getDeepAssociations = (modelName, models) => {
 }
 
 // This function is exported
-const generateSchema = (models, types, generateSubscriptions = false) => {
+const generateSchema = (models, types, options = {}) => {
     const modelTypes = types || generateModelTypes(models)
 
-    const queries = generateQueryRootType(models, modelTypes.outputTypes)
-    const mutations = generateMutationRootType(models, modelTypes.inputTypes, modelTypes.outputTypes, generateSubscriptions)
+    const queries = generateQueryRootType(models, modelTypes.outputTypes, options)
+    const mutations = generateMutationRootType(models, modelTypes.inputTypes, modelTypes.outputTypes, options)
 
     let schema = {
         query: queries,
         mutation: mutations
     }
 
-    if (generateSubscriptions) schema['subscription'] = generateSubscriptionRootType(modelTypes.inputTypes, modelTypes.outputTypes)
+    if (options.subscriptions) schema['subscription'] = generateSubscriptionRootType(modelTypes.inputTypes, modelTypes.outputTypes)
 
     return schema
 }

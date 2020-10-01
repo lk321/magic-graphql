@@ -6,6 +6,8 @@ const { generateSchema } = require('./generator')
 
 const defaultOptions = {
     modelDirPath: null,
+    customQueries: {},
+    customMutations: {},
     graphqlEndpint: '/graphql',
     subscriptions: false,
     httpServer: null,
@@ -33,7 +35,7 @@ module.exports = (app, options = defaultOptions) => {
     if (typeof options.modelDirPath === 'string') models = require(options.modelDirPath)
     else models = options.modelDirPath
 
-    let schemas = generateSchema(models, null, options.subscriptions)
+    let schemas = generateSchema(models, null, options)
 
     if (options.dataloader) {
         if (options.context && typeof options.context === 'object') {
