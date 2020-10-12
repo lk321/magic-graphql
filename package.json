@@ -11,25 +11,25 @@
         "build": "rm -rf dist && babel ./src --out-dir dist --ignore node_modules,test"
     },
     "dependencies": {
-        "apollo-server-express": "^2.17.0",
+        "apollo-server-express": "^2.18.2",
         "dataloader": "^2.0.0",
         "graphql": "^15.3.0",
         "graphql-relay": "^0.6.0",
         "graphql-sequelize": "^9.4.0",
         "graphql-subscriptions": "^1.1.0",
         "lodash": "^4.17.20",
-        "mysql2": "^2.1.0",
+        "mysql2": "^2.2.5",
         "pluralize": "^8.0.0",
         "sequelize": "^6.3.5",
         "shimmer": "^1.2.1",
-        "@babel/runtime": "^7.6.3"
+        "@babel/runtime": "^7.11.2"
     },
     "devDependencies": {
-        "@babel/cli": "^7.6.4",
-        "@babel/core": "^7.7.0",
-        "@babel/node": "^7.6.3",
-        "@babel/plugin-transform-runtime": "^7.6.2",
-        "@babel/preset-env": "^7.6.3"
+        "@babel/cli": "^7.11.6",
+        "@babel/core": "^7.11.6",
+        "@babel/node": "^7.10.5",
+        "@babel/plugin-transform-runtime": "^7.11.5",
+        "@babel/preset-env": "^7.11.5"
     },
     "babel": {
         "presets": [
