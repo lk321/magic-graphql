@@ -109,3 +109,4 @@ dist
 
 # config file
 config.json
+test/
