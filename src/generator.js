@@ -11,7 +11,7 @@ const helper = require('./helper')
 
 const pubSub = new PubSub()
 
-const { getProperTypeName } = helper;
+const { getProperTypeName } = helper
 let cache = {} // Cache fix
 // Dataloader ⭐️
 resolver.contextToOptions = {
@@ -58,7 +58,7 @@ const generateAssociationFields = (associations, types, isInput = false) => {
 const generateGraphQLType = (model, types, isInput = false) => {
     const GraphQLClass = isInput ? GraphQLInputObjectType : GraphQLObjectType
 
-    const { upperFirst: { singular: typeName } } = getProperTypeName(model);
+    const { upperFirst: { singular: typeName } } = getProperTypeName(model)
 
     return new GraphQLClass({
         name: isInput ? `${typeName}Input` : typeName,
@@ -136,7 +136,7 @@ const generateQueryRootType = (models, outputTypes, options) => {
                 let customs = {}
                 if (models[modelTypeName]['options'] && models[modelTypeName]['options']['resolvers'] && models[modelTypeName]['options']['resolvers']['query']) {
                     for (var key in models[modelTypeName]['options']['resolvers']['query']) {
-                        if (!models[modelTypeName]['options']['resolvers']['query'].hasOwnProperty(key)) continue;
+                        if (!models[modelTypeName]['options']['resolvers']['query'].hasOwnProperty(key)) continue
                         let query = models[modelTypeName]['options']['resolvers']['query'][key]
 
                         if (typeof query !== 'function') {
@@ -256,7 +256,7 @@ const generateMutationRootType = (models, inputTypes, outputTypes, options) => {
             (fields, inputTypeName) => {
                 const inputType = inputTypes[inputTypeName]
                 const key = models[inputTypeName].primaryKeyAttributes[0]
-                const { upperFirst, toUpper } = getProperTypeName(models[inputTypeName]);
+                const { upperFirst, lowerFirst, toUpperWithLodashes } = getProperTypeName(models[inputTypeName])
 
                 // Deep hasmany associations
                 const includeArrayModels = getDeepAssociations(inputTypeName, models)
@@ -264,7 +264,7 @@ const generateMutationRootType = (models, inputTypes, outputTypes, options) => {
                 let customs = {}
                 if (models[inputTypeName]['options'] && models[inputTypeName]['options']['resolvers'] && models[inputTypeName]['options']['resolvers']['mutation']) {
                     for (var keyMutation in models[inputTypeName]['options']['resolvers']['mutation']) {
-                        if (!models[inputTypeName]['options']['resolvers']['mutation'].hasOwnProperty(keyMutation)) continue;
+                        if (!models[inputTypeName]['options']['resolvers']['mutation'].hasOwnProperty(keyMutation)) continue
                         let mutation = models[inputTypeName]['options']['resolvers']['mutation'][keyMutation]
 
                         if (typeof mutation !== 'function') {
@@ -296,7 +296,7 @@ const generateMutationRootType = (models, inputTypes, outputTypes, options) => {
                             })
                     }
                 }
-
+                
                 const toReturn = Object.assign(fields, {
                     [`add${upperFirst.singular}`]: {
                         type: outputTypes[inputTypeName], // what is returned by resolve, must be of type GraphQLObjectType
@@ -308,7 +308,7 @@ const generateMutationRootType = (models, inputTypes, outputTypes, options) => {
                             const newObject = await models[inputTypeName].create(args[inputTypeName], { include: includeArrayModels })
 
                             // SubScription
-                            if (options.subscriptions) pubSub.publish(`${toUpper.singular}_ADDED`, { [`${toUpper.singular}Added`]: newObject })
+                            if (options.subscriptions) pubSub.publish(`${toUpperWithLodashes.singular}_ADDED`, { [`${lowerFirst.singular}Added`]: newObject })
 
                             return newObject
                         }
@@ -320,17 +320,17 @@ const generateMutationRootType = (models, inputTypes, outputTypes, options) => {
                             [inputTypeName]: { type: inputType }
                         },
                         resolve: (source, args, context, info) => {
-                            let options = {
+                            let ormOptions = {
                                 where: { [key]: args[inputTypeName][key] },
                                 include: includeArrayModels
                             }
 
-                            if (!options[EXPECTED_OPTIONS_KEY]) {
-                                options[EXPECTED_OPTIONS_KEY] = context['dataloaderContext'] || context
+                            if (!ormOptions[EXPECTED_OPTIONS_KEY]) {
+                                ormOptions[EXPECTED_OPTIONS_KEY] = context['dataloaderContext'] || context
                             }
 
                             // [INFO] Si se manda detalles actualizar los detalles tambien (includes)
-                            return models[inputTypeName].findOne(options).then(object2Update => {
+                            return models[inputTypeName].findOne(ormOptions).then(object2Update => {
                                 let promises = []
                                 includeArrayModels.forEach(m => {
                                     let model = m.model
@@ -346,12 +346,12 @@ const generateMutationRootType = (models, inputTypes, outputTypes, options) => {
 
                                 return Promise.all(promises).then(ups => {
                                     // SubScription
-                                    if (options.subscriptions) pubSub.publish(`${toUpper.singular}_UPDATED`, { [`${upperFirst.singular}Updated`]: Object.assign({}, object2Update.dataValues, args[inputTypeName]) })
+                                    if (options.subscriptions) pubSub.publish(`${toUpperWithLodashes.singular}_UPDATED`, { [`${lowerFirst.singular}Updated`]: object2Update.dataValues })
 
                                     // `boolean` equals the number of rows affected (0 or 1)
                                     return resolver(models[inputTypeName])(
                                         source,
-                                        options.where,
+                                        ormOptions.where,
                                         context,
                                         info
                                     )
@@ -369,7 +369,7 @@ const generateMutationRootType = (models, inputTypes, outputTypes, options) => {
                             const deletedRows = await models[inputTypeName].destroy({ where }) // Returns the number of rows affected (0 or 1)
 
                             // SubScription
-                            if (deletedRows > 0 && options.subscriptions) pubSub.publish(`${toUpper.singular}_DELETED`, { [`${upperFirst.singular}Deleted`]: where[key] })
+                            if (deletedRows > 0 && options.subscriptions) pubSub.publish(`${toUpperWithLodashes.singular}_DELETED`, { [`${lowerFirst.singular}Deleted`]: where[key] })
 
                             return deletedRows
                         }
@@ -385,25 +385,26 @@ const generateMutationRootType = (models, inputTypes, outputTypes, options) => {
 
 const generateSubscriptionRootType = (inputTypes, outputTypes) => new GraphQLObjectType({
     name: 'Subscription',
-    fields: Object.keys(inputTypes).reduce((fields, inputTypeName) => Object.assign(fields, {
-
-        [`${_.camelCase(inputTypeName)}Added`.replace(/ /g, '')]: {
-            type: outputTypes[inputTypeName],
-            description: `${_.startCase(_.camelCase(inputTypeName))} subscription for added event`,
-            // resolve: (payload) => payload,
-            subscribe: (_root, _args) => pubSub.asyncIterator([`${_.toUpper(inputTypeName)}_ADDED`])
-        },
-        [`${_.camelCase(inputTypeName)}Updated`.replace(/ /g, '')]: {
-            type: outputTypes[inputTypeName],
-            description: `${_.startCase(_.camelCase(inputTypeName))} subscription for updated event`,
-            subscribe: (_root, _args) => pubSub.asyncIterator([`${_.toUpper(inputTypeName)}_UPDATED`])
-        },
-        [`${_.camelCase(inputTypeName)}Deleted`.replace(/ /g, '')]: {
-            type: GraphQLInt,
-            description: `${_.startCase(_.camelCase(inputTypeName))} subscription for deleted event`,
-            subscribe: (_root, _args) => pubSub.asyncIterator([`${_.toUpper(inputTypeName)}_DELETED`])
-        }
-    }), {})
+    fields: Object.keys(inputTypes).reduce((fields, inputTypeName) => {
+        return Object.assign(fields, {
+            [`${_.camelCase(inputTypeName)}Added`.replace(/ /g, '')]: {
+                type: outputTypes[inputTypeName],
+                description: `${_.startCase(_.camelCase(inputTypeName))} subscription for added event`,
+                // resolve: (payload) => payload,
+                subscribe: (_root, _args) => pubSub.asyncIterator([`${_.toUpper(inputTypeName)}_ADDED`])
+            },
+            [`${_.camelCase(inputTypeName)}Updated`.replace(/ /g, '')]: {
+                type: outputTypes[inputTypeName],
+                description: `${_.startCase(_.camelCase(inputTypeName))} subscription for updated event`,
+                subscribe: (_root, _args) => pubSub.asyncIterator([`${_.toUpper(inputTypeName)}_UPDATED`])
+            },
+            [`${_.camelCase(inputTypeName)}Deleted`.replace(/ /g, '')]: {
+                type: GraphQLInt,
+                description: `${_.startCase(_.camelCase(inputTypeName))} subscription for deleted event`,
+                subscribe: (_root, _args) => pubSub.asyncIterator([`${_.toUpper(inputTypeName)}_DELETED`])
+            }
+        })
+    }, {})
 })
 
 const getDeepAssociations = (modelName, models) => {

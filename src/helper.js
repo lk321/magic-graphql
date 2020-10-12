@@ -140,22 +140,29 @@ module.exports = {
         return returnVar
     },
     getProperTypeName: (model) => {
-        const { lowerCase , lowerFirst , upperCase ,toUpper, upperFirst , startCase , toLower } = _
-        let n = {};
-        const singular = model.name.split('_').map(n => startCase( toLower(n))).join('').replace(/ /g, '')
-        
+        const { lowerCase, lowerFirst, upperCase, toUpper, upperFirst, startCase, toLower } = _
+        let n = {}
+        const singular = model.name.split('_').map(n => startCase(toLower(n))).join('').replace(/ /g, '')
+
         let typeNames = {
             lowerCase,
             lowerFirst,
             upperCase,
             upperFirst,
-            toUpper
+            toUpper,
+            toUpperWithLodashes: toUpper
         }
-        Object.keys(typeNames).map( o => {
-            let l = typeNames[o](singular); 
+
+        Object.keys(typeNames).map(o => {
+            let l = null
+            if (o === 'toUpperWithLodashes') {
+                l = typeNames[o](model.name)
+            } else {
+                l = typeNames[o](singular)
+            }
             n[o] = {
                 singular: l,
-                plural: pluralize( l )
+                plural: pluralize(l)
             }
         })
         return n
