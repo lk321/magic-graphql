@@ -1,6 +1,6 @@
 {
     "name": "magic-graphql",
-    "version": "0.0.6",
+    "version": "0.0.7",
     "description": "Automatic graph generator for Sequelize ORM, it's magic! 🧙‍♂️🧑🏻‍💻",
     "main": "index.js",
     "repository": "https://github.com/lk321/magic-graph.git",
@@ -8,7 +8,7 @@
     "license": "MIT",
     "private": false,
     "scripts": {
-        "build": "rm -rf dist && babel ./src --out-dir dist --ignore 'node_modules'"
+        "build": "rm -rf dist && babel ./src --out-dir dist --ignore node_modules,test"
     },
     "dependencies": {
         "apollo-server-express": "^2.17.0",
