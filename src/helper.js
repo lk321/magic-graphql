@@ -140,9 +140,10 @@ module.exports = {
         return returnVar
     },
     getProperTypeName: (model) => {
+        
         const { lowerCase, lowerFirst, upperCase, toUpper, upperFirst, startCase, toLower } = _
         let n = {}
-        const singular = model.name.split('_').map(n => startCase(toLower(n))).join('').replace(/ /g, '')
+        const singular = lowerFirst( model.name.split('_').map( n => startCase( n ) ).join('').replace(/ /g, '') )
 
         let typeNames = {
             lowerCase,
