@@ -52,9 +52,15 @@ module.exports = (app, options = defaultOptions) => {
         }
     }
 
+    let context = null
+    if(options.contextWrapper && typeof options.contextWrapper ==='function'){
+        context = options.contextWrapper( options.context )
+    }
+    else{ context = options.context }
+
     const graphqlServer = new ApolloServer({
         schema: new GraphQLSchema(schemas),
-        context: options.context
+        context
     })
 
     graphqlServer.applyMiddleware({ app, path: options.graphqlEndpint })
