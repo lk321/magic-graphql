@@ -1,6 +1,6 @@
 {
     "name": "magic-graphql",
-    "version": "0.0.7",
+    "version": "0.0.8",
     "description": "Automatic graph generator for Sequelize ORM, it's magic! 🧙‍♂️🧑🏻‍💻",
     "main": "index.js",
     "repository": "https://github.com/lk321/magic-graph.git",
