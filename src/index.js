@@ -40,13 +40,15 @@ module.exports = (app, options = defaultOptions) => {
     if (options.dataloader) {
         if (options.context && typeof options.context === 'object') {
             options.context = Object.assign({}, options.context, {
-                dataloaderContext: createContext(models.sequelize, options.dataloaderOptions)
+                dataloaderContext: createContext(models.sequelize, options.dataloaderOptions),
+                models
             })
         } else if (options.context && typeof options.context === 'function') {
             options.context = (integrationContext) => {
                 const optionsContext = options.context(integrationContext)
                 return Object.assign({}, optionsContext, {
-                    dataloaderContext: createContext(models.sequelize, options.dataloaderOptions)
+                    dataloaderContext: createContext(models.sequelize, options.dataloaderOptions),
+                    models
                 })
             }
         }
