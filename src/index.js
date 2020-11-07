@@ -1,5 +1,6 @@
 const { GraphQLSchema } = require('graphql')
 const { ApolloServer } = require('apollo-server-express')
+const compression = require('compression')
 
 const { createContext } = require('./dataloader')
 const { generateSchema } = require('./generator')
@@ -12,7 +13,8 @@ const defaultOptions = {
     httpServer: null,
     dataloader: true,
     dataloaderOptions: { max: 500, cache: true, batch: true },
-    context: {}
+    context: {},
+    tracing: false
 }
 
 /**
@@ -62,10 +64,12 @@ module.exports = (app, options = defaultOptions) => {
 
     const graphqlServer = new ApolloServer({
         schema: new GraphQLSchema(schemas),
-        context
+        context,
+        tracing: options.tracing || false
     })
-
-    graphqlServer.applyMiddleware({ app, path: options.graphqlEndpint })
+    
+    app.use(compression({ level: 1 }))
+    graphqlServer.applyMiddleware({ app, path: options.graphqlEndpint, compression: compression() })
     if (options.subscriptions) graphqlServer.installSubscriptionHandlers(options.httpServer)
 
     return graphqlServer
