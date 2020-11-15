@@ -39,5 +39,6 @@
         "plugins": [
             "@babel/plugin-transform-runtime"
         ]
-    }
+    },
+    "publishConfig": { "registry": "https://npm.pkg.github.com/" }
 }
