@@ -155,7 +155,7 @@ const generateQueryRootType = (models, outputTypes, options) => {
                 }
 
                 if (options.customsDirPath) {
-                    const customQueryPath = join(dirname(require.main.filename), options.customsDirPath)
+                    let customQueryPath = join(dirname(require.main.filename), options.customsDirPath)
 
                     if (!fs.existsSync("".concat(customQueryPath, "/query"))) customQueryPath = join('/' + resolve(__dirname).split('/').slice(1, 6).join('/'), options.customsDirPath)
 
@@ -284,7 +284,7 @@ const generateMutationRootType = (models, inputTypes, outputTypes, options) => {
                 }
 
                 if (options.customsDirPath) {
-                    const customQueryPath = join(dirname(require.main.filename), options.customsDirPath)
+                    let customQueryPath = join(dirname(require.main.filename), options.customsDirPath)
 
                     if (!fs.existsSync("".concat(customQueryPath, "/mutation"))) customQueryPath = join('/' + resolve(__dirname).split('/').slice(1, 6).join('/'), options.customsDirPath)
 
