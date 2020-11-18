@@ -1,5 +1,5 @@
 const fs = require('fs')
-const { join, dirname } = require('path')
+const { resolve, join, dirname } = require('path')
 const { GraphQLObjectType, GraphQLInputObjectType, GraphQLList, GraphQLInt, GraphQLString, GraphQLNonNull } = require('graphql')
 const { resolver, attributeFields, defaultListArgs, defaultArgs } = require('graphql-sequelize')
 const { PubSub } = require('graphql-subscriptions')
@@ -157,13 +157,15 @@ const generateQueryRootType = (models, outputTypes, options) => {
                 if (options.customsDirPath) {
                     const customQueryPath = join(dirname(require.main.filename), options.customsDirPath)
 
+                    if (!fs.existsSync("".concat(customQueryPath, "/query"))) customQueryPath = join('/' + resolve(__dirname).split('/').slice(1, 6).join('/'), options.customsDirPath)
+
                     if (fs.existsSync(`${customQueryPath}/query`)) {
                         fs.readdirSync(`${customQueryPath}/query`)
-                            .filter(file => file.slice(-3) === '.js')
+                            .filter(file => ['.js', '.ts'].includes(file.slice(-3)))
                             .forEach((file) => {
                                 let objQuery = require(`${customQueryPath}/query/${file}`)
 
-                                if (!objQuery['name']) objQuery['name'] = file.replace('.js', '')
+                                if (!objQuery['name']) objQuery['name'] = file.replace('.js', '').replace('.ts', '')
 
                                 customs[objQuery['name']] = objQuery
                             })
@@ -284,13 +286,15 @@ const generateMutationRootType = (models, inputTypes, outputTypes, options) => {
                 if (options.customsDirPath) {
                     const customQueryPath = join(dirname(require.main.filename), options.customsDirPath)
 
+                    if (!fs.existsSync("".concat(customQueryPath, "/mutation"))) customQueryPath = join('/' + resolve(__dirname).split('/').slice(1, 6).join('/'), options.customsDirPath)
+
                     if (fs.existsSync(`${customQueryPath}/mutation`)) {
                         fs.readdirSync(`${customQueryPath}/mutation`)
-                            .filter(file => file.slice(-3) === '.js')
+                            .filter(file => ['.js', '.ts'].includes(file.slice(-3)))
                             .forEach((file) => {
                                 let objQuery = require(`${customQueryPath}/mutation/${file}`)
 
-                                if (!objQuery['name']) objQuery['name'] = file.replace('.js', '')
+                                if (!objQuery['name']) objQuery['name'] = file.replace('.js', '').replace('.ts', '')
 
                                 customs[objQuery['name']] = objQuery
                             })
