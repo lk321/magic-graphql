@@ -1,6 +1,6 @@
 {
     "name": "magic-graphql",
-    "version": "0.0.12",
+    "version": "0.0.13",
     "description": "Automatic graph generator for Sequelize ORM, it's magic! 🧙‍♂️🧑🏻‍💻",
     "main": "index.js",
     "repository": "https://github.com/lk321/magic-graphql.git",
@@ -13,6 +13,7 @@
     "dependencies": {
         "@babel/runtime": "^7.12.5",
         "apollo-server-express": "^2.19.0",
+        "app-root-path": "^3.0.0",
         "compression": "^1.7.4",
         "dataloader": "^2.0.0",
         "graphql": "^15.4.0",
@@ -26,11 +27,11 @@
         "shimmer": "^1.2.1"
     },
     "devDependencies": {
-        "@babel/cli": "^7.12.1",
-        "@babel/core": "^7.12.3",
+        "@babel/cli": "^7.12.8",
+        "@babel/core": "^7.12.9",
         "@babel/node": "^7.12.6",
         "@babel/plugin-transform-runtime": "^7.12.1",
-        "@babel/preset-env": "^7.12.1"
+        "@babel/preset-env": "^7.12.7"
     },
     "babel": {
         "presets": [

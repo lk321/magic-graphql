@@ -3,6 +3,7 @@ const { resolve, join, dirname } = require('path')
 const { GraphQLObjectType, GraphQLInputObjectType, GraphQLList, GraphQLInt, GraphQLString, GraphQLNonNull } = require('graphql')
 const { resolver, attributeFields, defaultListArgs, defaultArgs } = require('graphql-sequelize')
 const { PubSub } = require('graphql-subscriptions')
+const appRoot = require('app-root-path')
 
 const { EXPECTED_OPTIONS_KEY } = require('./dataloader')
 
@@ -446,5 +447,6 @@ const generateSchema = (models, types, options = {}) => {
 module.exports = {
     generateGraphQLType,
     generateModelTypes,
-    generateSchema
+    generateSchema,
+    pubSub
 }

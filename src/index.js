@@ -3,7 +3,7 @@ const { ApolloServer } = require('apollo-server-express')
 const compression = require('compression')
 
 const { createContext } = require('./dataloader')
-const { generateSchema } = require('./generator')
+const { generateSchema, pubSub } = require('./generator')
 
 const defaultOptions = {
     modelDirPath: null,
@@ -95,8 +95,10 @@ Module.micro = (options = defaultOptions) => {
                 models
             })
         } else if (options.context && typeof options.context === 'function') {
+            const userContext = options.context
+            delete options.context
             options.context = (integrationContext) => {
-                const optionsContext = options.context(integrationContext)
+                const optionsContext = userContext(integrationContext)
                 return Object.assign({}, optionsContext, {
                     dataloaderContext: createContext(models.sequelize, options.dataloaderOptions),
                     models
@@ -114,7 +116,8 @@ Module.micro = (options = defaultOptions) => {
     return ({
         schema: new GraphQLSchema(schemas),
         context,
-        tracing: options.tracing || false
+        tracing: options.tracing || false,
+        pubSubscriptions: pubSub
     })
 
 }
