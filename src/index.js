@@ -3,13 +3,14 @@ const { ApolloServer } = require('apollo-server-express')
 const compression = require('compression')
 
 const { createContext } = require('./dataloader')
-const { generateSchema, pubSub } = require('./generator')
+const { generateSchema } = require('./generator')
 
 const defaultOptions = {
     modelDirPath: null,
     customsDirPath: null,
     graphqlEndpint: '/graphql',
     subscriptions: false,
+    pubsub: null,
     httpServer: null,
     dataloader: true,
     dataloaderOptions: { max: 500, cache: true, batch: true },
@@ -116,8 +117,7 @@ Module.micro = (options = defaultOptions) => {
     return ({
         schema: new GraphQLSchema(schemas),
         context,
-        tracing: options.tracing || false,
-        pubSubscriptions: pubSub
+        tracing: options.tracing || false
     })
 
 }
